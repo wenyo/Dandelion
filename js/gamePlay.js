@@ -2,17 +2,17 @@ const gamePlay = {
     key: 'gamePlay',
     preload: function(){
         // 載入資源
-        this.load.image('bg1', '../img/bg/bg-front.svg');
-        this.load.image('bg2', '../img/bg/bg-middle.svg');
-        this.load.image('bg3', '../img/bg/bg-back.svg');
-        this.load.image('bg4', '../img/bg/bg-color.svg');
-        this.load.image('footer', '../img/bg/footer.png');
-        this.load.spritesheet('user', '../img/items/player.png', {frameWidth: 144, frameHeight: 120});
+        this.load.image('bg1', 'img/bg/bg-front.svg');
+        this.load.image('bg2', 'img/bg/bg-middle.svg');
+        this.load.image('bg3', 'img/bg/bg-back.svg');
+        this.load.image('bg4', 'img/bg/bg-color.svg');
+        this.load.image('footer', 'img/bg/footer.png');
+        this.load.spritesheet('user', 'img/items/player.png', {frameWidth: 144, frameHeight: 120});
 
-        this.load.image('rock1Top','../img/items/item-level-1-branch.svg');
+        this.load.image('rock1Top','img/items/item-level-1-branch.svg');
 
-        this.load.image('timeIcon','../img/items/timeTxt-icon.svg');
-        this.load.image('playNote','../img/items/txt-countdown.svg');
+        this.load.image('timeIcon','img/items/timeTxt-icon.svg');
+        this.load.image('playNote','img/items/txt-countdown.svg');
         
         this.timeCount = '01:30';
         this.speedLv = 1;
