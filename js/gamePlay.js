@@ -1,3 +1,7 @@
+const getRock = (min, max) =>{
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
 const gamePlay = {
     key: 'gamePlay',
     preload: function(){
@@ -7,17 +11,29 @@ const gamePlay = {
         this.load.image('bg3', 'img/bg/bg-back.svg');
         this.load.image('bg4', 'img/bg/bg-color.svg');
         this.load.image('footer', 'img/bg/footer.png');
-        this.load.spritesheet('user', 'img/items/player.png', {frameWidth: 144, frameHeight: 120});
-
-        this.load.image('rock1Top','img/items/item-level-1-branch.svg');
-
+        this.load.spritesheet('user', 'img/items/player2.png', {frameWidth: 144, frameHeight: 120});
         this.load.image('timeIcon','img/items/timeTxt-icon.svg');
         this.load.image('playNote','img/items/txt-countdown.svg');
+
+        this.load.image('rock1','img/items/item-level-1-branch.svg');
+        this.load.image('rock2','img/items/item-level-1-rock.svg');
+        this.load.image('rock3','img/items/item-level-2-smoke-lg.svg');
+        this.load.image('rock4','img/items/item-level-2-smoke-sm.svg');
+        this.load.image('rock5','img/items/item-level-3-fire-lg.svg');
+        this.load.image('rock6','img/items/item-level-3-fire-sm.svg');
         
         this.timeCount = '01:30';
         this.speedLv = 1;
         this.gameStop = false;
         this.iskeyJump = true;
+        
+        this.iRockNum1 = 5;
+        this.iRockNum2 = 4;
+        this.iRockNum3 = 4;
+        this.vRockLv1 = [];
+        this.vRockLv2 = [];
+        this.vRockLv3 = [];
+        this.iDistance = 1000;
     },
     create: function(){
         // 加入物理效果
@@ -81,71 +97,141 @@ const gamePlay = {
         this.user_y = 200;
         this.user = this.physics.add.sprite(this.user_x, this.user_y, 'user');
         this.user.setScale(0.7);
+        // 角色動畫
         this.anims.create({
-            key: 'run',
+            key: 'run-left',
             frames: this.anims.generateFrameNumbers('user', { start: 0, end: 1 }),
             frameRate: 5,
             repeat: -1 // 無限循環
         })
         this.anims.create({
-            key: 'up',
+            key: 'run-right',
             frames: this.anims.generateFrameNumbers('user', { start: 2, end: 3 }),
+            frameRate: 5,
+            repeat: -1 // 無限循環
+        })
+        this.anims.create({
+            key: 'up',
+            frames: this.anims.generateFrameNumbers('user', { start: 4, end: 5 }),
             frameRate: 5,
             repeat: -1 
         })
         this.anims.create({
             key: 'speed',
-            frames: this.anims.generateFrameNumbers('user', { start: 4, end: 5 }),
+            frames: this.anims.generateFrameNumbers('user', { start: 6, end: 7 }),
             frameRate: 5,
             repeat: -1 
         })
+        this.anims.create({
+            key: 'die',
+            frames: this.anims.generateFrameNumbers('user', { start: 8, end: 8 }),
+            frameRate: 1,
+            repeat: 1 
+        })
         this.user.setBounce(1);
-        this.user.setSize(120, 120, 0);
         this.user.setCollideWorldBounds(true); //角色邊界限制
 
         // 設定怪
-        this.rock1Top = this.add.tileSprite(100 , 120, 250, 300, 'rock1Top');
-        this.physics.add.existing(this.rock1Top);
-        this.rock1Top.body.immovable = true;
-        this.rock1Top.body.moves = false;
-        this.rock1Top.setScale(0.8);
+        let vRockInfo = [
+            {
+                'name': 'rock1',
+                'X': w+200,
+                'Y': 120,
+                'width': 248,
+                'height': 304
+            },
+            {
+                'name': 'rock2',
+                'X': w+200,
+                'Y': h-163,
+                'width': 368,
+                'height': 192
+            },
+            {
+                'name': 'rock3',
+                'X': w+200,
+                'Y': h/2,
+                'width': 368,
+                'height': 192
+            },
+            {
+                'name': 'rock4',
+                'X': w+200,
+                'Y': h/2,
+                'width': 288,
+                'height': 136
+            },
+            {
+                'name': 'rock5',
+                'X': w+200,
+                'Y': h/2,
+                'width': 192,
+                'height': 224
+            },
+            {
+                'name': 'rock6',
+                'X': w+200,
+                'Y': h-300,
+                'width': 136,
+                'height': 152
+            },
+        ];
+
+        // 怪物出現
+        // Lv1
+        for(let iLv1 = 0; iLv1 < this.iRockNum1; iLv1++){
+            const iRockInd = getRock(0,1);
+            const vRock = vRockInfo[iRockInd];
+            this.vRockLv1.push(vRockInfo[iRockInd]);
+            this['rock'+ iLv1] = this.add.tileSprite(vRock['X']+ (this.iDistance * iLv1) , vRock['Y'], vRock['width'], vRock['height'], vRock['name']);
+            addPhysics(this['rock'+ iLv1])
+            this['rock'+ iLv1].setScale(0.8);
+            // why怪從左右無法碰撞？？？
+            this.physics.add.collider( this.user, this['rock'+iLv1]);
+        }
+
 
         // 設定要碰撞的對象
         this.physics.add.collider(this.user, this.footer);
-        this.physics.add.collider(this.user, this.rock1Top);
-
-        //播放動畫
-        this.user.anims.play('run', true);
     },
+    // 遊戲狀態更新
     update: function(){
         if(this.gameStop)return;
-        // 遊戲狀態更新
+        // 背景滾動視差
         this.bg1.tilePositionX += 5 * this.speedLv;
         this.bg2.tilePositionX += 4 * this.speedLv;
         this.bg3.tilePositionX += 3 * this.speedLv;
         this.footer.tilePositionX += 5 * this.speedLv;
 
+        // 監聽鍵盤事件
         const keyboard = this.input.keyboard.createCursorKeys();
-        if(keyboard.right.isDown){
-            this.user.setSize(145, 120, 0);
+        if(keyboard.right.isDown){ // 右
             this.user.flipX = false;
             this.user.setVelocityX(200);
-        }else if(keyboard.left.isDown){
-            this.user.setSize(145, 120, 0);
-            this.user.flipX = true;
+        }else if(keyboard.left.isDown){ // 左
+            // this.user.setSize(110, 120, 0);
+            this.user.anims.play('run-left', true);
+            this.user.flipX = false;
             this.user.setVelocityX(-200);
-        }else if(keyboard.space.isDown){
+        }else{ // 回到原位
+            this.user.anims.play('run-right', true);
+            this.user.setSize(115, 120, 0);
+            this.user.flipX = false;
+            this.user.setVelocityX(0);
+            this.iskeyJump = true;
+        }
+
+        if(keyboard.space.isDown){ // 空白鍵
             if(this.iskeyJump){
                 this.user.anims.play('up', true);
                 this.iskeyJump = false;
                 this.user.setVelocityY(-300);
             }
-        }else{
-            this.user.anims.play('run', true);
-            this.user.setSize(120, 120, 0);
-            this.user.flipX = false;
-            this.user.setVelocityX(0);
-            this.iskeyJump = true;
         }
+
+        for(let i = 0; i < this.vRockLv1.length; i++){
+            this['rock'+ i].x -= 5 * this.speedLv;
+        }
+        //this.rock1.x -= 5 * this.speedLv;
     }
 }

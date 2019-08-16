@@ -9,6 +9,7 @@ const config = {
             gravity: {
                 y: 700
             },
+            debug: true
         },
     },
     scene: [
