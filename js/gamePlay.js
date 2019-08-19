@@ -17,21 +17,27 @@ const gamePlay = {
     key: 'gamePlay',
     preload: function(){
         // 載入資源
+        // BG
         this.load.image('bg1', 'img/bg/bg-front.svg');
         this.load.image('bg2', 'img/bg/bg-middle.svg');
         this.load.image('bg3', 'img/bg/bg-back.svg');
         this.load.image('bg4', 'img/bg/bg-color.svg');
         this.load.image('footer', 'img/bg/footer.png');
-        this.load.image('timeIcon','img/items/timeTxt-icon.svg');
-        this.load.image('playNote','img/items/txt-countdown.svg');
 
+        // Rock
         this.load.image('rock1','img/items/item-level-1-branch.png');
         this.load.image('rock2','img/items/item-level-1-rock.png');
         this.load.image('rock3','img/items/item-level-2-smoke-lg.png');
         this.load.image('rock4','img/items/item-level-2-smoke-sm.png');
         this.load.image('rock5','img/items/item-level-3-fire-lg.png');
         this.load.image('rock6','img/items/item-level-3-fire-sm.png');
+        this.load.spritesheet('skill-ball','img/items/item-skill-ball.png', {frameWidth: 128, frameHeight: 128});
+
+        // UI
+        this.load.image('timeIcon','img/items/timeTxt-icon.svg');
+        this.load.image('playNote','img/items/txt-countdown.svg');
         
+        // ueser
         this.load.spritesheet('user', 'img/items/player2.png', {frameWidth: 144, frameHeight: 120});
 
         this.timeCount = '01:30';
@@ -39,6 +45,7 @@ const gamePlay = {
         this.speedLv = 1;
         this.gameStop = false;
         this.iskeyJump = true;
+        this.power = false;
         
         this.vRockLv1 = [];
         this.vRockLv2 = [];
@@ -96,26 +103,16 @@ const gamePlay = {
                 iMinute = iMinute < 10 ? '0' + iMinute : iMinute;
                 iSeconds = iSeconds < 10 ? '0' + iSeconds : iSeconds;
                 this.timeCount = iMinute + ':' + iSeconds;
-
-                if(this.totalTime < 60 && this.totalTime > 40){
-                    this.speedLv = 1;
-                }else if(this.totalTime < 40 && this.totalTime >= 20){
-                    this.speedLv = 1.2;
-                }else if(this.totalTime < 20 && this.totalTime >= 0){
-                    this.speedLv = 2;
-                }
             }
             //重新設定文字
             this.timeText.setText(this.timeCount);
         },1000)
 
         //設定角色
-        this.user_x = 200;
-        this.user_y = 200;
-        this.user = this.physics.add.sprite(this.user_x, this.user_y, 'user');
+        this.user = this.physics.add.sprite(200, 200, 'user');
         this.user.setScale(0.7);
         this.user.body.setGravityY(300);
-        this.user.body.setGravityX(300);
+        this.user.setSize(115, 120, 0);
 
         // 角色動畫
         this.anims.create({
@@ -150,12 +147,27 @@ const gamePlay = {
         })
         this.user.setBounce(1);
         this.user.setCollideWorldBounds(true); //角色邊界限制
+        
+        // 角色的各種撞到 function
+        // 撞到怪
+        const hitRock = (user, rock) => {
+            this.gameStop = true;
+            this.user.setSize(115, 120, 0);
+            clearInterval(gametime);
 
-        // const hitRock = (user, rock) => {
-        //     console.log('!!')
-        // }
+            this.user.anims.play('die', true);
+            this.user.setBounce(0);
+        }
+        
+        // 吃到技能球球
+        const getPower = (user, skillBall) => {
+            this.power = true;
+            window.setTimeout(()=>{
+                this.power = false;
+            },5000)
+        }
 
-        // 設定怪
+        // 設定怪的資訊
         let vRockInfo = [
             {
                 'name': 'rock1',
@@ -214,10 +226,10 @@ const gamePlay = {
                 const iRockInd = getRandom($min, $max);
                 const vRock = vRockInfo[iRockInd];
                 this['rock'+ iRockIndex] = this.add.tileSprite(vRock['X']+ (iDistance * index) , vRock['Y'], vRock['width'], vRock['height'], vRock['name']);
-                addPhysics(this['rock'+ iRockIndex])
+                addPhysics(this['rock'+ iRockIndex]);
                 this['rock'+ iRockIndex].setScale(vRock['size']);
                 $vRockStanBy.push(this['rock'+ iRockIndex]);
-                this.physics.add.collider( this.user, this['rock'+ iRockIndex]);
+                this.physics.add.collider( this.user, this['rock'+ iRockIndex], hitRock);
                 iRockIndex++;
             }
         }
@@ -234,8 +246,16 @@ const gamePlay = {
 
         this.vRockLv3[this.masIdx5].x = w+100;
         this.vRockLv3[this.masIdx6].x = w+500;
+
+        // 無敵球球
+        this.skillBall = this.add.sprite(200, 200, 'skill-ball');
+        addPhysics(this.skillBall);
+        this.skillBall.setScale(0.5);
+        this.skillBall.setSize(100, 100);
+
         // 設定要碰撞的對象
         this.physics.add.collider(this.user, this.footer);
+        this.physics.add.collider(this.user, this.skillBall, getPower);
     },
     // 遊戲狀態更新
     update: function(){
@@ -258,7 +278,6 @@ const gamePlay = {
             this.user.setVelocityX(-200);
         }else{ // 回到原位
             this.user.anims.play('run-right', true);
-            this.user.setSize(115, 120, 0);
             this.user.flipX = false;
             this.user.setVelocityX(0);
             this.iskeyJump = true;
@@ -269,6 +288,21 @@ const gamePlay = {
                 this.user.anims.play('up', true);
                 this.iskeyJump = false;
                 this.user.setVelocityY(-300);
+            }
+        }
+
+        // 吃到技能球球
+        if(this.power){
+            this.user.anims.play('speed', true);
+            this.user.setSize(145, 120, 0);
+            this.speedLv = 5;
+        }else{
+            if(this.totalTime < 90 && this.totalTime > 60){
+                this.speedLv = 2;
+            }else if(this.totalTime < 60 && this.totalTime >= 30){
+                this.speedLv = 3;
+            }else if(this.totalTime < 30 && this.totalTime >= 0){
+                this.speedLv = 4;
             }
         }
 
@@ -301,13 +335,10 @@ const gamePlay = {
         this.masIdx5 = resetRockPos(this.vRockLv3, this.masIdx5, this.masIdx6);
         this.masIdx6 = resetRockPos(this.vRockLv3, this.masIdx6, this.masIdx5);
 
-
-        
         for(let i = 0; i < iRockNum1+iRockNum2+iRockNum3; i++){
             if(this['rock'+ i].x <= -iDistance3){
                 this['rock'+ i].x = w+iDistance2;
             }
         }
-        //this.rock1.x -= 5 * this.speedLv;
     }
 }
